@@ -6,9 +6,7 @@
  to you under the Apache License, Version 2.0 (the
  "License"); you may not use this file except in compliance
  with the License.  You may obtain a copy of the License at
-
  http://www.apache.org/licenses/LICENSE-2.0
-
  Unless required by applicable law or agreed to in writing,
  software distributed under the License is distributed on an
  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,7 +46,55 @@ typedef enum : NSUInteger {
 {
     return [self.commandDelegate.settings objectForKey:[key lowercaseString]];
 }
+#pragma mark Initialize
+- (void)returnKeyType:(CDVInvokedUrlCommand *)command {
+    NSString* echo = [command.arguments objectAtIndex:0];
+    NSString* returnKeyType = [command.arguments objectAtIndex:1];
+  if([echo isEqualToString:@"returnKeyType"]) {
+        IMP darkImp = imp_implementationWithBlock(^(id _s) {
+           //return UIKeyboardAppearanceDark;
+           //return UIReturnKeyDone;
+           //return UIReturnKeyTypeSend;
+         //if([returnKeyType isEqualToString:@"send"])
+          //  return UIReturnKeySend;
+         if([returnKeyType isEqualToString:@"go"]) {
+            return UIReturnKeyGo;
+         } else if([returnKeyType isEqualToString:@"google"]) {
+            return UIReturnKeyGoogle;
+         } else if([returnKeyType isEqualToString:@"join"]) {
+            return UIReturnKeyJoin;
+         } else if([returnKeyType isEqualToString:@"next"]) {
+            return UIReturnKeyNext;
+         } else if([returnKeyType isEqualToString:@"route"]) {
+            return UIReturnKeyRoute;
+         } else if([returnKeyType isEqualToString:@"search"]) {
+            return UIReturnKeySearch;
+         } else if([returnKeyType isEqualToString:@"send"]) {
+            return UIReturnKeySend;
+         } else if([returnKeyType isEqualToString:@"yahoo"]) {
+            return UIReturnKeyYahoo;
+         } else if([returnKeyType isEqualToString:@"done"]) {
+            return UIReturnKeyDone;
+         } else if([returnKeyType isEqualToString:@"emergencycall"]) {
+            return UIReturnKeyEmergencyCall;
+         }
+         return UIReturnKeyDefault;
+       });
 
+    for (NSString* classString in @[@"UIWebBrowserView", @"UITextInputTraits"]) {
+        Class c = NSClassFromString(classString);
+       // Method m = class_getInstanceMethod(c, @selector(keyboardAppearance));
+      Method m = class_getInstanceMethod(c, @selector(returnKeyType));
+
+        if (m != NULL) {
+            method_setImplementation(m, darkImp);
+        } else {
+          //  class_addMethod(c, @selector(keyboardAppearance), darkImp, "l@:");
+           class_addMethod(c, @selector(returnKeyType), darkImp, "l@:");
+        }
+    }
+    }
+}
 #pragma mark Initialize
 
 - (void)pluginInitialize
@@ -82,6 +128,7 @@ typedef enum : NSUInteger {
     [nc addObserver:self selector:@selector(onKeyboardDidHide:) name:UIKeyboardDidHideNotification object:nil];
     [nc addObserver:self selector:@selector(onKeyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [nc addObserver:self selector:@selector(onKeyboardDidShow:) name:UIKeyboardDidShowNotification object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_pickerViewWillBeShown:) name: UIKeyboardWillShowNotification object:nil];
 
     // Prevent WKWebView to resize window
     BOOL isWK = self.isWK = [self.webView isKindOfClass:NSClassFromString(@"WKWebView")];
@@ -97,6 +144,118 @@ typedef enum : NSUInteger {
     }
 }
 
+
+- (void)_pickerViewWillBeShown:(NSNotification*)aNotification {
+    [self performSelector:@selector(_resetPickerViewBackgroundAfterDelay) withObject:nil afterDelay:0];
+}
+
+-(void)_resetPickerViewBackgroundAfterDelay
+{
+    //UIPickerView *pickerView = nil;
+    UIDatePicker *pickerView = nil;
+    for (UIWindow *uiWindow in [[UIApplication sharedApplication] windows]) {
+        for (UIView *uiView in [uiWindow subviews]) {
+          NSLog(@"%@", uiView);
+        //   if ([uiView isKindOfClass:NSClassFromString(@"UIDatePicker")] ){
+        // if ([uiView isKindOfClass:[UIDatePicker class]] ){
+              pickerView = [self _findPickerView:uiView];
+          // }
+        }
+    }
+
+    if (pickerView){
+        NSDate *now = [NSDate date];
+        NSCalendar *calendar = [[NSCalendar alloc]    initWithCalendarIdentifier:NSGregorianCalendar];
+        NSDateComponents *components = [calendar components:NSYearCalendarUnit|NSMonthCalendarUnit|NSDayCalendarUnit fromDate:now];
+        //set for today at 8 am
+        [components setHour:8];
+        NSDate *todayAtTime = [calendar dateFromComponents:components];
+     
+       [components setYear:[components year] - 100];
+        NSDate *prevYears = [calendar dateFromComponents:components];
+        //set max at now + 60 days
+      //  NSDate *futureDate = [NSDate dateWithTimeIntervalSinceNow:60 * 60 * 24 * 60];
+        //  NSDate *futureDate = [NSDate dateWithTimeIntervalSinceNow:60 * 60 * 24 * 36500];
+         NSDate *futureDate = [now dateByAddingTimeInterval:60 * 60 * 24 * 100 * 365];
+       // NSDate *prevDate = [now dateByAddingTimeInterval:60 * 60 * 24 * -13 * 365];
+        
+        [components setYear:[components year] + 86];
+        NSDate *hundredYearsAgo = [calendar dateFromComponents:components];
+     
+        //[self.downArrow setHidden:true];
+        //[pickerView.superview setClearButtonMode:@true];
+//        [pickerView setBackgroundColor:[UIColor greenColor]];
+        [pickerView.superview setValue:@"15" forKey:@"minuteInterval"];
+        [pickerView.superview setValue:hundredYearsAgo forKey:@"maximumDate"];
+        [pickerView.superview setValue:prevYears forKey:@"minimumDate"];
+     
+    
+     
+       /* UIToolbar *toolBar= [[UIToolbar alloc] initWithFrame:CGRectMake(0,0,320,44)];
+        [toolBar setBarStyle:UIBarStyleBlackOpaque];
+        UIBarButtonItem *barButtonDone = [[UIBarButtonItem alloc] initWithTitle:@"Done" 
+        style:UIBarButtonItemStyleBordered target:self action:@selector(changeDateFromLabel:)];
+        toolBar.items = @[barButtonDone];
+       barButtonDone.tintColor=[UIColor blackColor];
+       [pickerView addSubview:toolBar];*/
+   /*  
+     UIToolbar* keyboardToolbar = [[UIToolbar alloc] init];
+[keyboardToolbar sizeToFit];
+UIBarButtonItem *flexBarButton = [[UIBarButtonItem alloc]
+                                  initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
+                                  target:nil action:nil];
+UIBarButtonItem *doneBarButton = [[UIBarButtonItem alloc]
+                                  initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+                                  target:self action:@selector(yourTextViewDoneButtonPressed)];
+keyboardToolbar.items = @[flexBarButton, doneBarButton];
+      [pickerView addSubview:keyboardToolbar];
+     */
+     
+    }
+}
+
+-(UIPickerView *) _findPickerView:(UIView *)uiView
+{
+       //if ([uiView isKindOfClass:[UIPickerView class]] ){
+        if ([uiView isKindOfClass:objc_getClass("_UIDatePickerView")] || [uiView isKindOfClass:objc_getClass("UIDatePickerView")]) {
+           // return (UIDatePicker*) uiView;
+           // [(UITextField *)uiView setClearButtonMode:UITextFieldViewModeNever];
+           // [(UIPickerView *)uiView setClearButtonMode:UITextFieldViewModeNever];
+         
+        // for (UIView *sub in uiView) {
+              //[self hideKeyboardShortcutBar:sub];
+         /*     if ([NSStringFromClass([uiView class]) isEqualToString:@"UIWebBrowserView"]) {
+                  Method method = class_getInstanceMethod(uiView.class, @selector(inputAccessoryView));
+                  IMP newImp = imp_implementationWithBlock(^(id _s) {
+                      if ([uiView respondsToSelector:@selector(inputAssistantItem)]) {
+                          UITextInputAssistantItem *inputAssistantItem = [uiView inputAssistantItem];
+                          inputAssistantItem.leadingBarButtonGroups = @[];
+                          inputAssistantItem.trailingBarButtonGroups = @[];
+                      }
+                      return nil;
+                  });
+                  method_setImplementation(method, newImp);
+              }*/
+        //  }
+         
+         
+            return (UIPickerView*) uiView;
+        }
+ 
+      // if ([uiView isKindOfClass:NSClassFromString(@"UIDatePicker")] ){
+      /* if ([uiView isKindOfClass:[UIDatePicker class]] ){
+            return (UIDatePicker*) uiView;
+       }*/
+
+        if ([uiView subviews].count > 0) {
+            for (UIView *subview in [uiView subviews]){
+                UIPickerView* view = [self _findPickerView:subview];
+                if (view)
+                    return view;
+            }
+        }
+        return nil;
+}
 -(void)statusBarDidChangeFrame:(NSNotification*)notification
 {
     [self _updateFrame];
