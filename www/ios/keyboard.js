@@ -76,6 +76,11 @@ Keyboard.hideFormAccessoryBar = function (hide, success) {
     }
 };
 
+Keyboard.returnKeyType = function(hide) {
+   // alert("return key");
+    exec(null, null, "Keyboard", "returnKeyType", ["returnKeyType",hide]);
+};
+
 Keyboard.hide = function () {
     exec(null, null, "Keyboard", "hide", []);
 };
